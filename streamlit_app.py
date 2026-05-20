@@ -104,12 +104,12 @@ elif tip_material == "Bare (Confecții)":
             st.error("Format incorect! Introdu fiecare tip de piesă pe un rând nou (Ex:\n1500x4\n800x10)")
 
 # ==========================================
-# 3. SECȚIUNEA OPTIMIZARE BOND (CORECTATĂ + DISC SELECTABIL)
+# 3. SECȚIUNEA OPTIMIZARE BOND (FORMATURI NOI)
 # ==========================================
 else:
     format_bond = st.radio(
         "Alege formatul panoului Bond:", 
-        ["1500 mm x 3200 mm", "1500 mm x 4050 mm", "2000 mm x 4050 mm"]
+        ["1250 mm x 3200 mm", "1250 mm x 4050 mm", "1500 mm x 3200 mm", "1500 mm x 4050 mm"]
     )
     
     opțiune_disc = st.radio(
@@ -124,17 +124,20 @@ else:
     * **Grosime disc curentă:** **{DISC} mm** (scăzut automat doar între piese)
     """)
     
-    if "3200" in format_bond:
+    # Mapare formate noi
+    if "1250 mm x 3200 mm" in format_bond:
+        FOAIE_X, FOAIE_Y = 1250, 3200
+    elif "1250 mm x 4050 mm" in format_bond:
+        FOAIE_X, FOAIE_Y = 1250, 4050
+    elif "1500 mm x 3200 mm" in format_bond:
         FOAIE_X, FOAIE_Y = 1500, 3200
-    elif "1500 mm x 4050 mm" in format_bond:
+    else: # 1500 x 4050
         FOAIE_X, FOAIE_Y = 1500, 4050
-    else:
-        FOAIE_X, FOAIE_Y = 2000, 4050
         
     piese_input = st.text_area(
         "Introdu casetele Bond (LungimexLățimexCantitate, una pe rând):", 
         value="4000x1000x4", 
-        key="bond_nesting_v7_disc_selectabil"
+        key="bond_nesting_v8"
     )
     
     if st.button("Calculează Optimizare Inteligentă Bond"):
@@ -171,12 +174,10 @@ else:
                 st.stop()
                 
             toate_piesele.sort(key=lambda p: (p["l"], p["L"]), reverse=True)
-            
             foi = []
             
             for piesa in toate_piesele:
                 plasat = False
-                
                 for foaie in foi:
                     for rand in foaie["randuri"]:
                         if piesa["l"] <= rand["inaltime"]:
@@ -186,57 +187,32 @@ else:
                                 rand["lungime_ocupata"] += spatiu_necesar_Y
                                 plasat = True
                                 break
-                    if plasat:
-                        break
+                    if plasat: break
                     
                     latime_actuala_X = sum(r["inaltime"] for r in foaie["randuri"]) + (len(foaie["randuri"]) * DISC)
-                    
                     if latime_actuala_X + piesa["l"] <= FOAIE_X:
-                        un_nou_rand = {
-                            "inaltime": piesa["l"],
-                            "lungime_ocupata": piesa["L"],
-                            "piese": [piesa]
-                        }
+                        un_nou_rand = {"inaltime": piesa["l"], "lungime_ocupata": piesa["L"], "piese": [piesa]}
                         foaie["randuri"].append(un_nou_rand)
                         plasat = True
                         break
                 
                 if not plasat:
-                    structura_foaie_noua = {
-                        "randuri": [
-                            {
-                                "inaltime": piesa["l"],
-                                "lungime_ocupata": piesa["L"],
-                                "piese": [piesa]
-                            }
-                        ]
-                    }
-                    foi.append(structura_foaie_noua)
+                    foi.append({"randuri": [{"inaltime": piesa["l"], "lungime_ocupata": piesa["L"], "piese": [piesa]}]})
             
-            # Afișare rezultate
             st.success("🔥 Optimizare Nesting Inteligent Finalizată!")
             st.markdown(f"### 📊 Necesar Total Stoc: **{len(foi)} foi de Bond** (Format {FOAIE_X}x{FOAIE_Y} mm)")
-            st.caption(f"Calcul realizat cu pierdere de debitare: {DISC} mm între piese.")
             
             for f_idx, foaie in enumerate(foi, 1):
                 st.markdown(f"#### 📑 FOAIA # {f_idx}")
-                
                 total_latime_foaie_X = 0
                 for r_idx, rand in enumerate(foaie["randuri"], 1):
-                    if r_idx == 1:
-                        total_latime_foaie_X += rand["inaltime"]
-                    else:
-                        total_latime_foaie_X += rand["inaltime"] + DISC
-                        
+                    total_latime_foaie_X += rand["inaltime"] + (DISC if r_idx > 1 else 0)
                     schita_piese = " + ".join([f"{p['L']}x{p['l']}mm" for p in rand["piese"]])
                     rest_lungime_rand = FOAIE_Y - rand["lungime_ocupata"]
-                    
-                    st.markdown(f"**Rând {r_idx} [Lățime fâșie {rand['inaltime']}mm]:**")
-                    st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;📐 `[{schita_piese}]` ➡️ *Rest în capătul fâșiei: {max(0, rest_lungime_rand)} mm*")
+                    st.markdown(f"**Rând {r_idx} [Lățime fâșie {rand['inaltime']}mm]:**\n&nbsp;&nbsp;&nbsp;&nbsp;📐 `[{schita_piese}]` ➡️ *Rest în capăt: {max(0, rest_lungime_rand)} mm*")
                 
                 rest_foaie_X = max(0, FOAIE_X - total_latime_foaie_X)
-                st.info(f"➡️ **Fâșie rămasă disponibilă pe Lățimea foii (Axa X): {rest_foaie_X} mm**")
+                st.info(f"➡️ **Fâșie disponibilă pe Lățimea foii (X): {rest_foaie_X} mm**")
                 st.markdown("---")
-                
         except Exception as e:
             st.error(f"Eroare tehnică la optimizare: {str(e)}.")
