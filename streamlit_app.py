@@ -1,14 +1,5 @@
 import streamlit as st
 
-st.set_page_config(
-
-    page_title="Optimizare CNC", 
-
-    page_icon="⚙️",  # 🧮
-
-    layout="centered"
-
-)
 
 st.set_page_config(page_title="Optimizare Plasmă, Bare & Bond", layout="centered")
 st.title("⚙️ Optimizare CNC & Confecții Metalice")
