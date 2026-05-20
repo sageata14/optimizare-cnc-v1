@@ -9,6 +9,7 @@ st.set_page_config(
     layout="centered"
 
 )
+
 st.set_page_config(page_title="Optimizare Plasmă, Bare & Bond", layout="centered")
 st.title("⚙️ Optimizare CNC & Confecții Metalice")
 
